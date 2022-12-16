@@ -1,1 +1,2 @@
-print("Hello")
+from graph import points, adjacency_list
+
