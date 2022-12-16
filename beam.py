@@ -3,8 +3,7 @@ import numpy as np
 
 
 class Point:
-    def __init__(self, _name, _x, _y, _z):
-        self.name = _name
+    def __init__(self, _x, _z):
         self.x = _x
         self.z = _z
 
