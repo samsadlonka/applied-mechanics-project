@@ -5,9 +5,9 @@ h = int(input("Введите значение h для фермы"))
 with open("graph.txt", 'rt', encoding='utf-8') as file:
     # список смежностей
     adjacency_list = list(map(lambda x: list(map(int, x.split())), file.readlines()))
-    points = [Point(L / 2, h), Point(L / 3, 2 * h / 3), Point(2 * L / 3, 2 * h / 3)]
-    points += [Point(L / 6, h / 3), Point(5 * L / 6, h / 3)]
-    points += [Point(L / 6 * i, 0) for i in range(7)]
+    points = [Point(L / 2, 0, h), Point(L / 3, 0, 2 * h / 3), Point(2 * L / 3, 0, 2 * h / 3)]
+    points += [Point(L / 6, 0, h / 3), Point(5 * L / 6, 0, h / 3)]
+    points += [Point(L / 6 * i, 0, 0) for i in range(7)]
 
 with open("forces.txt", 'rt', encoding='utf-8') as file:
     # список внешних сил
