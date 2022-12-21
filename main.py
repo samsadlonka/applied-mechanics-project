@@ -2,12 +2,17 @@ from beam import Point, Beam
 
 L = int(input("Введите значение L для фермы"))
 h = int(input("Введите значение h для фермы"))
-f = open("graph.txt", 'rt', encoding='utf-8')
-# список смежностей
-adjacency_list = list(map(lambda x: list(map(int, x.split())), f.readlines()))
-points = [Point(L / 2, h), Point(L / 3, 2 * h / 3), Point(2 * L / 3, 2 * h / 3)]
-points += [Point(L / 6, h / 3), Point(5 * L / 6, h / 3)]
-points += [Point(L / 6 * i, 0) for i in range(7)]
+with open("graph.txt", 'rt', encoding='utf-8') as file:
+    # список смежностей
+    adjacency_list = list(map(lambda x: list(map(int, x.split())), file.readlines()))
+    points = [Point(L / 2, h), Point(L / 3, 2 * h / 3), Point(2 * L / 3, 2 * h / 3)]
+    points += [Point(L / 6, h / 3), Point(5 * L / 6, h / 3)]
+    points += [Point(L / 6 * i, 0) for i in range(7)]
+
+with open("forces.txt", 'rt', encoding='utf-8') as file:
+    # список внешних сил
+    forces_list=list(map(lambda x: float(x.split(":")[1]), file.readlines()))
+
 
 list_of_beams = []
 
