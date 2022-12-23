@@ -9,18 +9,4 @@
 """
 
 
-class Point:
-    def __init__(self, x, z):
-        self.x = x
-        self.z = z
-
-
-L = int(input("Введите значение L для фермы"))
-h = int(input("Введите значение h для фермы"))
-f = open("graph.txt", 'rt', encoding='utf-8')
-# список смежностей
-adjacency_list = list(map(lambda x: list(map(int, x.split())), f.readlines()))
-points = [Point(L / 2, h), Point(L / 3, 2 * h / 3), Point(2 * L / 3, 2 * h / 3)]
-points += [Point(L / 6, h / 3), Point(5 * L / 6, h / 3)]
-points += [Point(L / 6 * i, 0) for i in range(7)]
 

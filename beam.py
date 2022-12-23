@@ -18,27 +18,20 @@ class Point:
 
 class Beam:
     def __init__(self, _pnt_1, _pnt_2, _E, _G, R, r):
+        R = R / 10 ** 3
+        r = r / 10 ** 3
         self.pnt_1 = _pnt_1
         self.pnt_2 = _pnt_2
         self.l = _pnt_1.length(_pnt_2)
-        self.E = _E
-        self.G = _G
-        self.J = 1
+        self.E = _E * 10 ** 5
+        self.G = _G * 10 ** 5
+        self.J = pi * (2 * R) ** 4 * (1 - (r / R) ** 4) / 64
         self.A = pi * R ** 2 - pi * r ** 2
         self.local_matrix = self.make_local_matrix()
         self.global_matrix = self.make_with_global()
 
     def make_with_global(self):
-        v1 = np.array([(self.pnt_2.x - self.pnt_1.x) / self.pnt_2.length(self.pnt_1), (self.pnt_2.y - self.pnt_1.y) /
-                       self.pnt_2.length(self.pnt_1),
-                       (self.pnt_2.z - self.pnt_1.z) / self.pnt_2.length(self.pnt_1)])
-        v2 = np.array([(0 - self.pnt_1.x) / self.pnt_1.length(Point(0, 1, 0)),
-                       (1 - self.pnt_1.y) / self.pnt_1.length(Point(0, 1, 0)),
-                       (0 - self.pnt_1.z) / self.pnt_1.length(Point(0, 1, 0))])
-        v3 = np.cross(v1, v2)
-        v2 = np.cross(v1, v3)
-        rotation_matrix = np.array(v1, v2, v3)
-        rotation_matrix = np.transpose(rotation_matrix)
+        rotation_matrix = self.make_rotation_matrix()
         T_Ke = np.dot(rotation_matrix, self.local_matrix)
         result = np.dot(T_Ke, np.transpose(rotation_matrix))
         return result
@@ -48,27 +41,48 @@ class Beam:
         other = sorted([other_beam.pnt_1, other_beam.pnt_2])
         return this == other
 
+    def make_rotation_matrix(self):
+        v1 = np.array([(self.pnt_2.x - self.pnt_1.x) / self.pnt_2.length(self.pnt_1), (self.pnt_2.y - self.pnt_1.y) /
+                       self.pnt_2.length(self.pnt_1),
+                       (self.pnt_2.z - self.pnt_1.z) / self.pnt_2.length(self.pnt_1)])
+        v2 = np.array([(0 - self.pnt_1.x) / self.pnt_1.length(Point(0, 1, 0)),
+                       (1 - self.pnt_1.y) / self.pnt_1.length(Point(0, 1, 0)),
+                       (0 - self.pnt_1.z) / self.pnt_1.length(Point(0, 1, 0))])
+        v3 = np.cross(v1, v2)
+        v2 = np.cross(v1, v3)
+        matrix = np.array(v1, v2, v3)
+        matrix = np.transpose(matrix)
+        null_matrix = [[0, 0, 0],
+                       [0, 0, 0],
+                       [0, 0, 0]]
+        rotation_matrix = np.array([matrix, null_matrix, null_matrix, null_matrix],
+                                   [null_matrix, matrix, null_matrix, null_matrix],
+                                   [null_matrix, null_matrix, matrix, null_matrix],
+                                   [null_matrix, null_matrix, null_matrix, matrix], dtype=float)
+        return rotation_matrix
+
     def make_local_matrix(self):
         k11 = np.array([[12 * self.E * self.J / self.l ** 3, 0, 0, 0, 6 * self.E * self.J / self.l ** 2, 0],
                         [0, 12 * self.E * self.J / self.l ** 3, 0, -6 * self.E * self.J / self.l ** 2, 0, 0],
                         [0, 0, self.E * self.A / self.l, 0, 0, 0],
                         [0, -6 * self.E * self.J / self.l ** 2, 0, 4 * self.E * self.J / self.l, 0, 0],
                         [6 * self.E * self.J / self.l ** 2, 0, 0, 0, 4 * self.E * self.J / self.l, 0],
-                        [0, 0, 0, 0, 0, self.G * self.J / self.l]])
+                        [0, 0, 0, 0, 0, self.G * self.J / self.l]], dtype=float)
         k12 = np.array([[-12 * self.E * self.J / self.l ** 3, 0, 0, 0, 6 * self.E * self.J / self.l ** 2, 0],
                         [0, -12 * self.E * self.J / self.l ** 3, 0, -6 * self.E * self.J / self.l ** 2, 0, 0],
                         [0, 0, -self.E * self.A / self.l, 0, 0, 0],
-                        [0, 6 * self.E * self.J / self.l ** 2, 0, 0, 0],
-                        [-6 * self.E * self.J / self.l ** 2, 0, 0, 0, 2 * self.E * self.J / self.l],
-                        [0, 0, 0, 0, 0, -self.G * self.J / self.l]])
+                        [0, 6 * self.E * self.J / self.l ** 2, 0, 0, 0, 0],
+                        [-6 * self.E * self.J / self.l ** 2, 0, 0, 0, 2 * self.E * self.J / self.l, 0],
+                        [0, 0, 0, 0, 0, -self.G * self.J / self.l]], dtype=float)
         k21 = np.transpose(k12)
         C = np.array([[-1, 0, 0, 0, 0, 0],
                       [0, -1, 0, 0, 0, 0],
                       [0, 0, -1, 0, 0, 0],
                       [0, -self.l, 0, -1, 0, 0],
                       [self.l, 0, 0, 0, -1, 0],
-                      [0, 0, 0, 0, 0, -1]])
+                      [0, 0, 0, 0, 0, -1]], dtype=float)
         k22 = np.dot(C, k12)
+
         Kl = np.array([k11, k12],
                       [k21, k22])
         return Kl
