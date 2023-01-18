@@ -13,7 +13,21 @@ class Point:
                     + (self.y - other_point.y) ** 2 + (self.z - other_point.z) ** 2)
 
     def __lt__(self, other):
-        return self.x < other.x or self.y < other.y or self.z < other.z
+        return self.x < other.x or self.z > other.z or self.y < other.y
+
+    def __eq__(self, other):
+        return abs(self.x - other.x) < 0.01 and abs(self.y - other.y) < 0.01 and abs(self.z - other.z) < 0.01
+
+    def __repr__(self):
+        return ' '.join([self.x, self.y, self.z])
+
+    def update(self, u1, u2, u3):
+        self.x += u1
+        self.y += u2
+        self.z += u3
+
+    def get_coord(self):
+        return self.x, self.y, self.z
 
 
 class Beam:
@@ -23,9 +37,10 @@ class Beam:
         self.pnt_1 = _pnt_1
         self.pnt_2 = _pnt_2
         self.l = _pnt_1.length(_pnt_2)
-        self.E = _E * 10 ** 5
-        self.G = _G * 10 ** 5
-        self.J = pi * (2 * R) ** 4 * (1 - (r / R) ** 4) / 64
+        self.E = _E * 10 ** 6
+        self.G = _G * 10 ** 6
+        self.Jz = self.Jy = pi * (2 * R) ** 4 * (1 - (r / R) ** 4) / 64
+        self.Jx = self.Jz * 2
         self.A = pi * R ** 2 - pi * r ** 2
         self.local_matrix = self.make_local_matrix()
         self.global_matrix = self.make_with_global()
@@ -36,53 +51,59 @@ class Beam:
         result = np.dot(T_Ke, np.transpose(rotation_matrix))
         return result
 
+    def get_points(self):
+        return [self.pnt_1.get_coord(), self.pnt_2.get_coord()]
+
     def __eq__(self, other_beam):
-        this = sorted([self.pnt_1, self.pnt_2])
-        other = sorted([other_beam.pnt_1, other_beam.pnt_2])
-        return this == other
+        return (self.pnt_1 == other_beam.pnt_1 and self.pnt_2 == other_beam.pnt_2) \
+               or (self.pnt_1 == other_beam.pnt_2 and self.pnt_2 == other_beam.pnt_1)
 
     def make_rotation_matrix(self):
         v1 = np.array([(self.pnt_2.x - self.pnt_1.x) / self.pnt_2.length(self.pnt_1), (self.pnt_2.y - self.pnt_1.y) /
                        self.pnt_2.length(self.pnt_1),
-                       (self.pnt_2.z - self.pnt_1.z) / self.pnt_2.length(self.pnt_1)])
+                       (self.pnt_2.z - self.pnt_1.z) / self.pnt_2.length(self.pnt_1)], dtype=float)
         v2 = np.array([(0 - self.pnt_1.x) / self.pnt_1.length(Point(0, 1, 0)),
                        (1 - self.pnt_1.y) / self.pnt_1.length(Point(0, 1, 0)),
-                       (0 - self.pnt_1.z) / self.pnt_1.length(Point(0, 1, 0))])
+                       (0 - self.pnt_1.z) / self.pnt_1.length(Point(0, 1, 0))], dtype=float)
         v3 = np.cross(v1, v2)
         v2 = np.cross(v1, v3)
-        matrix = np.array(v1, v2, v3)
+        matrix = np.vstack((v1, v2, v3))
         matrix = np.transpose(matrix)
-        null_matrix = [[0, 0, 0],
-                       [0, 0, 0],
-                       [0, 0, 0]]
-        rotation_matrix = np.array([matrix, null_matrix, null_matrix, null_matrix],
-                                   [null_matrix, matrix, null_matrix, null_matrix],
-                                   [null_matrix, null_matrix, matrix, null_matrix],
-                                   [null_matrix, null_matrix, null_matrix, matrix], dtype=float)
+        null_matrix = np.array([[0, 0, 0],
+                                [0, 0, 0],
+                                [0, 0, 0]], dtype=float)
+        rotation_matrix = np.vstack((np.hstack((matrix, null_matrix, null_matrix, null_matrix)),
+                                     np.hstack((null_matrix, matrix, null_matrix, null_matrix)),
+                                     np.hstack((null_matrix, null_matrix, matrix, null_matrix)),
+                                     np.hstack((null_matrix, null_matrix, null_matrix, matrix))
+                                     ))
         return rotation_matrix
 
     def make_local_matrix(self):
-        k11 = np.array([[12 * self.E * self.J / self.l ** 3, 0, 0, 0, 6 * self.E * self.J / self.l ** 2, 0],
-                        [0, 12 * self.E * self.J / self.l ** 3, 0, -6 * self.E * self.J / self.l ** 2, 0, 0],
-                        [0, 0, self.E * self.A / self.l, 0, 0, 0],
-                        [0, -6 * self.E * self.J / self.l ** 2, 0, 4 * self.E * self.J / self.l, 0, 0],
-                        [6 * self.E * self.J / self.l ** 2, 0, 0, 0, 4 * self.E * self.J / self.l, 0],
-                        [0, 0, 0, 0, 0, self.G * self.J / self.l]], dtype=float)
-        k12 = np.array([[-12 * self.E * self.J / self.l ** 3, 0, 0, 0, 6 * self.E * self.J / self.l ** 2, 0],
-                        [0, -12 * self.E * self.J / self.l ** 3, 0, -6 * self.E * self.J / self.l ** 2, 0, 0],
-                        [0, 0, -self.E * self.A / self.l, 0, 0, 0],
-                        [0, 6 * self.E * self.J / self.l ** 2, 0, 0, 0, 0],
-                        [-6 * self.E * self.J / self.l ** 2, 0, 0, 0, 2 * self.E * self.J / self.l, 0],
-                        [0, 0, 0, 0, 0, -self.G * self.J / self.l]], dtype=float)
-        k21 = np.transpose(k12)
-        C = np.array([[-1, 0, 0, 0, 0, 0],
-                      [0, -1, 0, 0, 0, 0],
-                      [0, 0, -1, 0, 0, 0],
-                      [0, -self.l, 0, -1, 0, 0],
-                      [self.l, 0, 0, 0, -1, 0],
-                      [0, 0, 0, 0, 0, -1]], dtype=float)
-        k22 = np.dot(C, k12)
-
-        Kl = np.array([k11, k12],
-                      [k21, k22])
+        k11 = self.E * self.A / self.l
+        k22 = 12 * self.E * self.Jz / self.l ** 3
+        k33 = 12 * self.E * self.Jy / self.l ** 3
+        k26 = 6 * self.E * self.Jz / self.l ** 2
+        k35 = 6 * self.E * self.Jy / self.l ** 2
+        k44 = self.G * self.Jx / self.l
+        k55 = 4 * self.E * self.Jy / self.l
+        k66 = 4 * self.E * self.Jz / self.l
+        k511 = 2 * self.E * self.Jy / self.l
+        k612 = 2 * self.E * self.Jz / self.l
+        Kl = np.array([[k11, 0, 0, 0, 0, 0, -k11, 0, 0, 0, 0, 0],
+                       [0, k22, 0, 0, 0, k26, 0, -k22, 0, 0, 0, k26],
+                       [0, 0, k33, 0, -k35, 0, 0, 0, -k33, 0, -k35, 0],
+                       [0, 0, 0, k44, 0, 0, 0, 0, 0, -k44, 0, 0],
+                       [0, 0, -k35, 0, k55, 0, 0, 0, k35, 0, k511, 0],
+                       [0, k26, 0, 0, 0, k66, 0, -k26, 0, 0, 0, k612],
+                       [-k11, 0, 0, 0, 0, 0, k11, 0, 0, 0, 0, 0],
+                       [0, -k22, 0, 0, 0, -k26, 0, k22, 0, 0, 0, -k26],
+                       [0, 0, -k33, 0, k35, 0, 0, 0, k33, 0, k35, 0],
+                       [0, 0, 0, -k44, 0, 0, 0, 0, 0, k44, 0, 0],
+                       [0, 0, -k35, 0, k511, 0, 0, 0, k35, 0, k55, 0],
+                       [0, k26, 0, 0, 0, k612, 0, -k26, 0, 0, 0, k66]]
+                      )
         return Kl
+
+    def __repr__(self):
+        return ' '.join(map(str, [self.pnt_1.x, self.pnt_1.z, self.pnt_2.x, self.pnt_2.z]))
