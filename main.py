@@ -33,13 +33,7 @@ with open('graph.txt', 'rt', encoding='utf-8') as file:
 
 list_of_beams = make_construction(adjacency_list, points)
 
-for i in range(len(points)):
-    neighbors = adjacency_list[i]
-    for neighbor in neighbors:
-        p = sorted([points[i], points[neighbor]])
-        new_beam = Beam(p[0], p[1], E, G, R, r)
-        if new_beam not in list_of_beams:
-            list_of_beams.append(new_beam)
+
 
 index_matrix = []
 for s in open('matrix.txt', 'r').readlines():
@@ -55,7 +49,7 @@ for i in range(len(list_of_beams)):
             Kg[index_matrix[vec[i] - 1][j] - 1][index_matrix[vec[i] - 1][m] - 1] += \
                 list_of_beams[i].global_matrix[j][m]
 F = [0.] * 72
-#draw(list_of_beams)
+# draw(list_of_beams)
 for i in range(12):
     F[i * 6 + 2] = forces_list[i]
 F = np.array(F)
@@ -86,6 +80,5 @@ for i in range(len(list_of_beams)):
     eps = abs(list_of_beams[i].l - new_list_of_beams[i].l) / list_of_beams[i].l
     tension_list.append(list_of_beams[i].E * eps)
 
-
-#draw(new_list_of_beams)
+# draw(new_list_of_beams)
 draw(new_list_of_beams, tension_list)
