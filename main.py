@@ -55,7 +55,7 @@ for i in range(len(list_of_beams)):
             Kg[index_matrix[vec[i] - 1][j] - 1][index_matrix[vec[i] - 1][m] - 1] += \
                 list_of_beams[i].global_matrix[j][m]
 F = [0.] * 72
-draw(list_of_beams)
+#draw(list_of_beams)
 for i in range(12):
     F[i * 6 + 2] = forces_list[i]
 F = np.array(F)
@@ -87,5 +87,5 @@ for i in range(len(list_of_beams)):
     tension_list.append(list_of_beams[i].E * eps)
 
 
-draw(new_list_of_beams)
+#draw(new_list_of_beams)
 draw(new_list_of_beams, tension_list)

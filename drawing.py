@@ -1,37 +1,30 @@
-#!/usr/bin/env python
-
-# This example creates a tube around a line.
-# This is helpful because when you zoom the camera,
-# the thickness of a line remains constant,
-# while the thickness of a tube varies.
-
-
-# noinspection PyUnresolvedReferences
 import vtkmodules.vtkInteractionStyle
-# noinspection PyUnresolvedReferences
 import vtkmodules.vtkRenderingOpenGL2
 from vtkmodules.vtkCommonColor import vtkNamedColors
 from vtkmodules.vtkFiltersCore import vtkTubeFilter
+import vtkmodules.vtkRenderingFreeType
 from vtkmodules.vtkFiltersSources import vtkLineSource
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
     vtkPolyDataMapper,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
-    vtkRenderer
+    vtkRenderer,
+    vtkTextActor
 )
 
-ranges = [200 * i * 10 ** 6 for i in range(0, 7)]
+ranges = [200 * i * 10 ** 6 for i in range(0, 6)]
+colors_name = ['blue', 'green', 'yellow', 'orange', 'red']
 
 
 def beams_colors(tensions):
     if not tensions:
         return None
-    max_t = (int(str(max(tensions))[0]) + 1) * 10 ** (len(str(int(max(tensions)))) - 1)
-    min_t = int(str(min(tensions))[0]) * 10 ** (len(str(int(min(tensions)))) - 1)
-    step = (max_t - min_t) // 5
+    # max_t = (int(str(max(tensions))[0]) + 1) * 10 ** (len(str(int(max(tensions)))) - 1)
+    # min_t = int(str(min(tensions))[0]) * 10 ** (len(str(int(min(tensions)))) - 1)
+    # step = (max_t - min_t) // 5
     color_list = []
-    colors = ['blue', 'green', 'yellow', 'orange', 'red']
+
     for tension in tensions:
         i = 0
         if tension == max(tensions):
@@ -40,7 +33,7 @@ def beams_colors(tensions):
             while i < 4 and not (ranges[i] < tension < ranges[i + 1]):
                 i += 1
 
-            color_list.append(colors[i])
+            color_list.append(colors_name[i])
     return color_list
 
 
@@ -96,8 +89,26 @@ def draw(beams, tensions=None):
     renderer = vtkRenderer()
     renderWindow = vtkRenderWindow()
     renderWindow.SetPosition(300, 20)
+    text = []
     if tensions:
         renderWindow.SetWindowName('Ферма с напряжениями')
+        for i in range(len(ranges)):
+            text.append(vtkTextActor())
+            if i == len(ranges) - 1:
+                text[i].SetInput('max: ' + str(int(max(tensions)))[:-6] + ' MPa')
+                txtprop = text[i].GetTextProperty()
+                txtprop.SetFontSize(24)
+                txtprop.SetColor(colors.GetColor3d('black'))
+                text[i].SetDisplayPosition(30, 20 * i)
+            else:
+                if i == len(ranges) - 2:
+                    text[i].SetInput('>=' + str(ranges[i])[:3] + ' MPa')
+                else:
+                    text[i].SetInput(str(ranges[i])[:3] + ' - ' + str(ranges[i + 1])[:-6] + ' MPa')
+                txtprop = text[i].GetTextProperty()
+                txtprop.SetFontSize(24)
+                txtprop.SetColor(colors.GetColor3d(colors_name[i]))
+                text[i].SetDisplayPosition(30, 20 * i)
     else:
         renderWindow.SetWindowName('Ферма')
     renderWindow.AddRenderer(renderer)
@@ -110,7 +121,8 @@ def draw(beams, tensions=None):
         tubeActor[i].RotateX(-90)
         renderer.AddActor(lineActor[i])
         renderer.AddActor(tubeActor[i])
-
+    for i in range(len(ranges)):
+        renderer.AddActor(text[i])
     renderer.SetBackground(colors.GetColor3d('DarkSlateGray'))
     renderer.ResetCamera()
     renderWindow.SetSize(600, 600)
